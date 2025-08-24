@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
+from dali.driver import hasseb
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-# TODO List the platforms that you want to support.
-# For your initial PR, limit it to 1 platform.
 _PLATFORMS: list[Platform] = [Platform.LIGHT]
 
-# TODO Create ConfigEntry type alias with API object
-# TODO Rename type alias and update all entry annotations
-type New_NameConfigEntry = ConfigEntry[MyApi]  # noqa: F821
+type HassebDaliConfigEntry = ConfigEntry[hasseeb.SyncHassebDALIUSBDriver]  # noqa: F821
 
-
-# TODO Update entry annotation
-async def async_setup_entry(hass: HomeAssistant, entry: New_NameConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: HassebDaliConfigEntry) -> bool:
     """Set up Hasseb DALI Master light controller from a config entry."""
 
     # TODO 1. Create API instance
@@ -28,8 +24,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: New_NameConfigEntry) -> 
 
     return True
 
-
-# TODO Update entry annotation
-async def async_unload_entry(hass: HomeAssistant, entry: New_NameConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: HassebDaliConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)

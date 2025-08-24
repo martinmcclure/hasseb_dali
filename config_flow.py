@@ -7,6 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.components import usb
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -14,91 +15,72 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
-
-# TODO adjust the data schema to the data that you need
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_HOST): str,
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
-    }
-)
 
 
-class PlaceholderHub:
-    """Placeholder class to make tests pass.
 
-    TODO Remove this placeholder class and replace with things from your PyPI package.
-    """
-
-    def __init__(self, host: str) -> None:
-        """Initialize."""
-        self.host = host
-
-    async def authenticate(self, username: str, password: str) -> bool:
-        """Test if we can authenticate with the host."""
-        return True
-
-
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
-    # TODO validate the data can be used to set up a connection.
-
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data[CONF_USERNAME], data[CONF_PASSWORD]
-    # )
-
-    hub = PlaceholderHub(data[CONF_HOST])
-
-    if not await hub.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
-        raise InvalidAuth
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
-
-    # Return info that you want to store in the config entry.
-    return {"title": "Name of the device"}
-
-
-class ConfigFlow(ConfigFlow, domain=DOMAIN):
+class HassebDaliMasterConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hasseb DALI Master light controller."""
 
-    VERSION = 1
+    def __init__(self) -> None:
+        """Set up flow instance."""
+        self._dev_path: str | None = None
+
+    async def async_step_usb(self, discovery_info: UsbServiceInfo) -> ConfigFlowResult:
+        """Handle USB Discovery."""
+        device = discovery_info.device
+        dev_path = await self.hass.async_add_executor_job(usb.get_serial_by_id, device)
+        unique_id = _generate_unique_id(discovery_info)
+        await self.async_set_unique_id(unique_id)
+        return self.async_create_entry(
+            title=user_input.get(CONF_NAME, DEFAULT_NAME),
+            data={
+                CONF_DEVICE: self._dev_path
+            }
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
+        """Handle a flow initiated by the user."""
+        if self._async_in_progress():
+            return self.async_abort(reason="already_in_progress")
+        # ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
+        # existing_devices = [
+        #     entry.data[CONF_DEVICE] for entry in self._async_current_entries()
+        # ]
+        # unused_ports = [
+        #     usb.human_readable_device_name(
+        #         port.device,
+        #         port.serial_number,
+        #         port.manufacturer,
+        #         port.description,
+        #         port.vid,
+        #         port.pid,
+        #     )
+        #     for port in ports
+        #     if port.device not in existing_devices
+        # ]
+        # if not unused_ports:
+        #     return self.async_abort(reason="no_devices_found")
+
+        errors = {}
+        if user_input is not None and user_input.get(CONF_DEVICE, "").strip():
+            # port = ports[unused_ports.index(str(user_input[CONF_DEVICE]))]
+            dev_path = await self.hass.async_add_executor_job(
+                usb.get_serial_by_id, port.device
+            )
+            unique_id = _generate_unique_id(dev_path)
+            await self.async_set_unique_id(unique_id)
             try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+                await self._validate_device(dev_path)
+            except TimeoutError:
+                errors[CONF_DEVICE] = "timeout_connect"
+            # except RAVEnConnectionError:
+            #     errors[CONF_DEVICE] = "cannot_connect"
             else:
-                return self.async_create_entry(title=info["title"], data=user_input)
+                return await self.async_step_meters()
 
-        return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
-        )
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
+        schema = vol.Schema({vol.Required(CONF_DEVICE): vol.In(unused_ports)})
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
 
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""

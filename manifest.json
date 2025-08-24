@@ -1,14 +1,21 @@
 {
   "domain": "hasseb_dali",
   "name": "Hasseb DALI Master light controller",
+  "version": "0.1",
+  "type": "hub",
   "codeowners": ["@martinmcclure"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["usb"],
   "documentation": "https://www.home-assistant.io/integrations/hasseb_dali",
-  "homekit": {},
   "iot_class": "local_polling",
   "quality_scale": "bronze",
   "requirements": ["python-dali==0.11"],
-  "ssdp": [],
-  "zeroconf": []
+  "usb": [
+    {
+      "vid": "04cc",
+      "pid": "0802",
+      "manufacturer": "hasseb",
+      "known_devices": ["hasseb DALI Master"]
+    }
+  ]
 }
