@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 
 _PLATFORMS: list[Platform] = [Platform.LIGHT]
 
-type HassebDaliConfigEntry = ConfigEntry[hasseeb.SyncHassebDALIUSBDriver]  # noqa: F821
+type HassebDaliConfigEntry = ConfigEntry[hasseb.SyncHassebDALIUSBDriver]  # noqa: F821
 
 async def async_setup_entry(hass: HomeAssistant, entry: HassebDaliConfigEntry) -> bool:
     """Set up Hasseb DALI Master light controller from a config entry."""
