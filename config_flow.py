@@ -43,7 +43,7 @@ class HassebDaliMasterConfigFlow(ConfigFlow, domain=DOMAIN):
 
 async def _async_has_devices(hass: HomeAssistant) -> bool:
     """Return if there are devices that can be discovered."""
-    devices = await hass.async_add_executor_job(hasseb.SyncHassebDALIUSBDriverFactory())
+    devices = await hass.async_add_executor_job(hasseb.SyncHassebDALIUSBDriverFactory)
     return len(devices) > 0
 
 
